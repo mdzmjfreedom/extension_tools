@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>cURL Parser</title>
+    <link rel="stylesheet" type="text/css" href="css/small.css"/>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script src="js/curl.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="left">
+        <h3>Paste cURL here:</h3>
+        <textarea id="curlInput"></textarea>
+        <button id="parseBtn">Parse</button>
+        <button id="sendBtn">Send Request</button>
+        <h3>Request Details:</h3>
+        <div id="result">
+            <p><strong>URL:</strong> <span id="url"></span></p>
+            <p><strong>Method:</strong> <span id="method"></span></p>
+            <p><strong>Headers:</strong></p>
+            <table id="headers"></table>
+            <p><strong>Data:</strong> <span id="data"></span></p>
+        </div>
+    </div>
+    <div class="right">
+        <h3>Response:</h3>
+        <div id="response">Sending request...</div>
+    </div>
+</div>
+</body>
+</html>

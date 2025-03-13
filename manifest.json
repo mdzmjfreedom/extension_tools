@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "cURL Parser",
+  "version": "1.0",
+  "description": "Parse cURL and send request",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "contextMenus",
+    "activeTab",
+    "storage",
+    "notifications",
+    "unlimitedStorage",
+    "declarativeNetRequest"
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*",
+    "file://*/*"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "img/fe-16.png",
+      "48": "img/fe-48.png",
+      "128": "img/fe-128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "big_url.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
