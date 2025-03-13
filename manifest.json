@@ -32,7 +32,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "big_url.html"
+        "html/curl/big.html"
       ],
       "matches": [
         "<all_urls>"
