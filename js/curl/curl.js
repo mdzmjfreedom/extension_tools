@@ -18,6 +18,10 @@ $(document).ready(function () {
             $(this).attr("disabled", false);
             return;
         }
+
+        requestData = result;
+        displayResult(requestData);
+
         sendRequest(result);
     });
 
@@ -41,6 +45,7 @@ $(document).ready(function () {
     });
 
     $("#headers").on("input", "textarea", function () {
+        console.log(requestData.headers)
         const $row = $(this).closest("tr");
         const name = $row.find("td:eq(0) textarea").val();
         const value = $row.find("td:eq(1) textarea").val();
@@ -171,90 +176,13 @@ function sendRequest(requestData) {
         headers: requestData.headers || {}
     }, (response) => {
         if (response.success) {
-            let startTime;
             $.ajax({
                 url: requestData.url,
                 method: requestData.method || "GET",
                 data: requestData.method.toUpperCase() === "POST" ? requestData.data : undefined,
-                beforeSend: function () {
-                    $("#response").text("Sending...");
-
-                    // 调用同步用户信息获取函数
-                    const userInfoResult = fetchUserInfo(requestData);
-                    console.log("userInfoResult:", userInfoResult);
-                    if (userInfoResult.success) {
-                        chrome.runtime.sendMessage({
-                            type: "setRequestHeaders",
-                            url: requestData.url,
-                            headers: requestData.headers
-                        });
-                    } else if (userInfoResult.success === false && userInfoResult.userId === undefined) {
-                        // 用户信息接口失败，显示错误并中止
-                        $("#response").text("Error: Failed to fetch user info.");
-                        $("#sendBtn").attr("disabled", false);
-                        return false; // 中止主请求
-                    }
-
-                    displayResult(requestData);
-                    startTime = performance.now();
-                },
-                success: function (response) {
-                    const endTime = performance.now();
-                    const duration = (endTime - startTime).toFixed(2);
-                    let responseText;
-                    try {
-                        responseText = JSON.stringify(response, null, 2);
-                    } catch (e) {
-                        responseText = response;
-                    }
-                    $("#response").html(`<strong>Duration:</strong> ${duration} ms\n\n${responseText}`);
-                    $("#sendBtn").attr("disabled", false);
-                },
-                error: function (xhr, status, error) {
-                    const endTime = performance.now();
-                    const duration = (endTime - startTime).toFixed(2);
-                    $("#response").html(`<strong>Duration:</strong> ${duration} ms\n<strong>Error:</strong> ${status} - ${error}\n<strong>Details:</strong> ${xhr.responseText}`);
-                    $("#sendBtn").attr("disabled", false);
-                }
-                // success: function (data, status, xhr) {
-                //     // console.log(data);
-                //     // console.log(status);
-                //     // console.log(xhr);
-                //
-                //     const endTime = performance.now();
-                //     const duration = (endTime - startTime).toFixed(2);
-                //     let responseText = xhr.responseText;
-                //     try {
-                //         responseText = JSON.stringify(data, null, 2);
-                //     } catch (e) {
-                //         // responseText = response;
-                //     }
-                //
-                //     // 加粗 Duration 和响应内容分开
-                //     $("#response").html(`
-                //         <strong>Duration:</strong> ${duration} ms\n
-                //         <strong>Status:</strong> ${xhr.status}\n
-                //         ${responseText}
-                //     `);
-                //     $("#sendBtn").attr("disabled", false);
-                // },
-                // error: function (xhr, status, error) {
-                //     // console.log(xhr);
-                //     // console.log(status);
-                //     // console.log(error);
-                //
-                //     const endTime = performance.now();
-                //     const duration = (endTime - startTime).toFixed(2);
-                //
-                //     // 加粗 Error 和 Details
-                //     $("#response").html(`
-                //         <strong>Duration:</strong> ${duration} ms\n
-                //         <strong>Error:</strong> ${status} - ${error}\n
-                //         <strong>Details:</strong> ${xhr.responseText}
-                //     `);
-                //     $("#sendBtn").attr("disabled", false);
-                // }
-            });
+                context: {},
+                beforeSend: handleBeforeSend
+            }).done(handleDone).fail(handleFail).always(handleAlways);
         } else {
             $("#response").text("Error: Failed to set request headers.");
             $("#sendBtn").attr("disabled", false);
@@ -262,18 +190,71 @@ function sendRequest(requestData) {
     });
 }
 
+function handleBeforeSend() {
+    $("#response").text("Sending...");
+
+    // 调用同步用户信息获取函数
+    const userInfoResult = fetchUserInfo(requestData);
+    console.log(userInfoResult);
+    // console.log(userInfoResult)
+    // if (userInfoResult.success && userInfoResult.userId) {
+    //     chrome.runtime.sendMessage({
+    //         type: "setRequestHeaders",
+    //         url: requestData.url,
+    //         headers: requestData.headers
+    //     });
+    // } else if (userInfoResult.success === false && isEmpty(userInfoResult.userId)) {
+    //     $("#response").text("Error: Failed to fetch user info.");
+    //     $("#sendBtn").attr("disabled", false);
+    //     return false;
+    // }
+
+    this.startTime = performance.now();
+}
+
+function handleDone(response, status, xhr) {
+    const endTime = performance.now();
+    const duration = (endTime - this.startTime).toFixed(2);
+    let responseText;
+    try {
+        responseText = JSON.stringify(response, null, 2);
+    } catch (e) {
+        responseText = response;
+    }
+    $("#response").html(`<strong>Duration:</strong> ${duration} ms\n\n${responseText}`);
+    $("#sendBtn").attr("disabled", false);
+}
+
+function handleFail(xhr, status, error) {
+    const endTime = performance.now();
+    const duration = (endTime - this.startTime).toFixed(2);
+    $("#response").html(`<strong>Duration:</strong> ${duration} ms\n<strong>Error:</strong> ${status} - ${error}\n<strong>Details:</strong> ${xhr.responseText}`);
+    $("#sendBtn").attr("disabled", false);
+}
+
+function handleAlways(xhr, status) {
+}
+
 function fetchUserInfo(requestData) {
-    console.log("fetchUserInfo requestData:", requestData);
+    console.log("fetchUserInfo requestData", requestData);
+
+    if (isEmpty(requestData) || isEmpty(requestData.url)) {
+        return {success: false}
+    }
+
+    const urlObj = new URL(requestData.url);
+    const hostname = urlObj.hostname.toLowerCase();
+    if (isEmpty(hostname) || (hostname !== 'localhost' && hostname !== '127.0.0.1')) {
+        return {success: false}
+    }
 
     const headers = requestData.headers || {};
     const hasAuth = headers["Authorization"] || headers["AuthToken"] || headers["authorization"] || headers["authToken"];
 
-    console.log("fetchUserInfo hasAuth:", hasAuth);
-
     if (hasAuth) {
         let userId;
         let success = false;
-        let paramHeaders = {"Authorization": hasAuth};
+        let paramHeaders = {"Authorization": hasAuth, "AuthToken": hasAuth};
 
         if (headers["Client-Type"] || headers["client-type"]) {
             paramHeaders["Client-Type"] = headers["Client-Type"];
@@ -283,13 +264,11 @@ function fetchUserInfo(requestData) {
             paramHeaders["PlatformCode"] = headers["PlatformCode"];
         }
 
-        console.log("fetchUserInfo paramHeaders:", paramHeaders);
-
         $.ajax({
-            url: "http://gateway-ll.test.ztoeco.com/auth/getAuthInfo", // 替换为实际接口
+            url: "http://gateway-ll.test.ztoeco.com/auth/getAuthInfo",
             method: "GET",
             headers: paramHeaders,
-            async: false, // 同步请求
+            async: false,
             success: function (data, status, xhr) {
                 userId = xhr.getResponseHeader("x-user-id");
                 if (userId) {
@@ -308,5 +287,6 @@ function fetchUserInfo(requestData) {
             userId: userId
         };
     }
-    return {success: false}; // 未满足条件时不执行
+
+    return {success: true};
 }

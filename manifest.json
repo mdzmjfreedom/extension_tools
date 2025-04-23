@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "cURL Parser",
+  "name": "ExtensionTools",
   "version": "1.0",
   "description": "Parse cURL and send request",
   "permissions": [
