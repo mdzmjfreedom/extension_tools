@@ -194,8 +194,8 @@ function handleBeforeSend() {
     $("#response").text("Sending...");
 
     // 调用同步用户信息获取函数
-    const userInfoResult = fetchUserInfo(requestData);
-    console.log(userInfoResult);
+    // const userInfoResult = fetchUserInfo(requestData);
+    // console.log(userInfoResult);
     // console.log(userInfoResult)
     // if (userInfoResult.success && userInfoResult.userId) {
     //     chrome.runtime.sendMessage({
