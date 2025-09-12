@@ -1,29 +1,30 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Add initial header row
     addHeaderRow();
 
     // Add header button
-    $('#add-header-btn').click(function() {
+    $('#add-header-btn').click(function () {
         addHeaderRow();
         // Force scroll to bottom to show new header row
         $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
     });
 
     // Send request
-    $('#send-btn').click(function() {
+    $('#send-btn').click(function () {
         sendRequest();
     });
 
-    // Show cURL modal
-    $('#curl-btn').click(function() {
+    // Show cURL modal and focus input
+    $('#curl-btn').click(function () {
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
         $('#curl-modal').css('display', 'flex');
+        $('#curl-input').focus();
         $('#curl-btn').prop('disabled', true);
     });
 
     // Parse cURL
-    $('#parse-curl-btn').click(function() {
+    $('#parse-curl-btn').click(function () {
         if (parseCurl()) {
             $('#curl-modal').css('display', 'none');
             $('#curl-btn').prop('disabled', false);
@@ -31,7 +32,7 @@ $(document).ready(function() {
     });
 
     // Cancel cURL modal
-    $('#cancel-curl-btn').click(function() {
+    $('#cancel-curl-btn').click(function () {
         $('#curl-modal').css('display', 'none');
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
@@ -39,7 +40,7 @@ $(document).ready(function() {
     });
 
     // Close modal on Esc key
-    $(document).keydown(function(e) {
+    $(document).keydown(function (e) {
         if (e.key === 'Escape' && $('#curl-modal').is(':visible')) {
             $('#curl-modal').css('display', 'none');
             $('#curl-input').val('');
@@ -49,7 +50,7 @@ $(document).ready(function() {
     });
 
     // Request tab switching
-    $('.request-tab').click(function() {
+    $('.request-tab').click(function () {
         $('.request-tab').removeClass('active');
         $(this).addClass('active');
         $('#body-section, #headers-section').removeClass('active');
@@ -57,7 +58,7 @@ $(document).ready(function() {
     });
 
     // Response tab switching
-    $('.tab').click(function() {
+    $('.tab').click(function () {
         $('.tab').removeClass('active');
         $(this).addClass('active');
         $('#response-body, #response-headers').removeClass('active');
@@ -72,7 +73,7 @@ function addHeaderRow(key = '', value = '') {
     row.append('<button type="button" class="remove-header-btn" style="margin-left:5px; background-color:#dc3545; color:white; border:none; padding:5px 10px; cursor:pointer;">Remove</button>');
     $('#headers-container').append(row);
 
-    row.find('.remove-header-btn').click(function() {
+    row.find('.remove-header-btn').click(function () {
         row.remove();
     });
 }
@@ -103,7 +104,7 @@ function sendRequest() {
 
     const headers = {};
     const attemptedHeaders = [];
-    $('#headers-container .header-row').each(function() {
+    $('#headers-container .header-row').each(function () {
         const key = $(this).find('.header-key').val().trim();
         const value = $(this).find('.header-value').val().trim();
         if (key) {
@@ -113,7 +114,7 @@ function sendRequest() {
     });
     headers['Content-Type'] = contentType;
 
-    let requestData = { url, method, headers };
+    let requestData = {url, method, headers};
     if (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH') {
         if (contentType === 'application/x-www-form-urlencoded' && body) {
             const params = {};
@@ -145,7 +146,7 @@ function sendRequest() {
                 method: method,
                 data: requestData.data,
                 contentType: contentType,
-                success: function(response, status, xhr) {
+                success: function (response, status, xhr) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let responseText = JSON.stringify(response, null, 2);
                     if (attemptedHeaders.length > 0) {
@@ -155,12 +156,12 @@ function sendRequest() {
                     $('#response-status').text(`${xhr.status} ${xhr.statusText}`).addClass('success');
                     $('#response-time').text(`${responseTime} ms`);
                     const respHeaders = [];
-                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function(header) {
+                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function (header) {
                         respHeaders.push(header);
                     });
                     $('#response-headers').text(respHeaders.join('\n'));
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let errorMsg = `Error: ${error}\n${xhr.responseText}`;
                     if (xhr.status === 0) {
@@ -175,7 +176,7 @@ function sendRequest() {
                     $('#response-time').text(`${responseTime} ms`);
                     $('#response-headers').text(xhr.getAllResponseHeaders());
                 },
-                complete: function() {
+                complete: function () {
                     $('#loading-overlay').css('display', 'none');
                     $('#send-btn').text('Send').prop('disabled', false);
                 }
