@@ -1,27 +1,30 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Add initial header row
-    addHeaderRow();
+    // addHeaderRow();
 
     // Add header button
-    $('#add-header-btn').click(function() {
+    $('#add-header-btn').click(function () {
         addHeaderRow();
+        // Force scroll to bottom to show new header row
+        $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
     });
 
     // Send request
-    $('#send-btn').click(function() {
+    $('#send-btn').click(function () {
         sendRequest();
     });
 
-    // Show cURL modal
-    $('#curl-btn').click(function() {
+    // Show cURL modal and focus input
+    $('#curl-btn').click(function () {
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
         $('#curl-modal').css('display', 'flex');
         $('#curl-btn').prop('disabled', true);
+        $('#curl-input').focus();
     });
 
     // Parse cURL
-    $('#parse-curl-btn').click(function() {
+    $('#parse-curl-btn').click(function () {
         if (parseCurl()) {
             $('#curl-modal').css('display', 'none');
             $('#curl-btn').prop('disabled', false);
@@ -29,7 +32,7 @@ $(document).ready(function() {
     });
 
     // Cancel cURL modal
-    $('#cancel-curl-btn').click(function() {
+    $('#cancel-curl-btn').click(function () {
         $('#curl-modal').css('display', 'none');
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
@@ -37,7 +40,7 @@ $(document).ready(function() {
     });
 
     // Close modal on Esc key
-    $(document).keydown(function(e) {
+    $(document).keydown(function (e) {
         if (e.key === 'Escape' && $('#curl-modal').is(':visible')) {
             $('#curl-modal').css('display', 'none');
             $('#curl-input').val('');
@@ -46,12 +49,37 @@ $(document).ready(function() {
         }
     });
 
-    // Tab switching
-    $('.tab').click(function() {
+    // Request tab switching
+    $('.request-tab').click(function () {
+        $('.request-tab').removeClass('active');
+        $(this).addClass('active');
+        $('#body-section, #headers-section').removeClass('active');
+        $('#' + $(this).data('tab') + '-section').addClass('active');
+    });
+
+    // Response tab switching
+    $('.tab').click(function () {
         $('.tab').removeClass('active');
         $(this).addClass('active');
         $('#response-body, #response-headers').removeClass('active');
         $('#response-' + $(this).data('tab')).addClass('active');
+    });
+
+    // Content-Type radio change
+    $('input[name="content-type"]').change(function () {
+        const contentType = $(this).val();
+        // Remove existing Content-Type header row
+        $('#headers-container .header-row').each(function () {
+            const keyInput = $(this).find('.header-key');
+            if (keyInput.val().toLowerCase() === 'content-type') {
+                $(this).remove();
+            }
+        });
+        // Add new Content-Type header row if not 'none'
+        if (contentType !== 'none') {
+            addHeaderRow('Content-Type', contentType);
+            $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
+        }
     });
 });
 
@@ -62,7 +90,7 @@ function addHeaderRow(key = '', value = '') {
     row.append('<button type="button" class="remove-header-btn" style="margin-left:5px; background-color:#dc3545; color:white; border:none; padding:5px 10px; cursor:pointer;">Remove</button>');
     $('#headers-container').append(row);
 
-    row.find('.remove-header-btn').click(function() {
+    row.find('.remove-header-btn').click(function () {
         row.remove();
     });
 }
@@ -74,7 +102,7 @@ function sendRequest() {
     $('#response-time').text('');
     const method = $('#method-select').val();
     const url = $('#url-input').val().trim();
-    const contentType = $('#content-type-select').val();
+    const contentType = $('input[name="content-type"]:checked').val();
     const body = $('#body-textarea').val();
 
     if (!url) {
@@ -93,7 +121,7 @@ function sendRequest() {
 
     const headers = {};
     const attemptedHeaders = [];
-    $('#headers-container .header-row').each(function() {
+    $('#headers-container .header-row').each(function () {
         const key = $(this).find('.header-key').val().trim();
         const value = $(this).find('.header-value').val().trim();
         if (key) {
@@ -101,14 +129,26 @@ function sendRequest() {
             attemptedHeaders.push(key);
         }
     });
-    headers['Content-Type'] = contentType;
+    // Only set Content-Type if not 'none'
+    if (contentType !== 'none') {
+        headers['Content-Type'] = contentType;
+    }
 
-    const requestData = {
-        url: url,
-        method: method,
-        headers: headers,
-        data: body
-    };
+    let requestData = {url, method, headers};
+    if (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH') {
+        if (contentType === 'application/x-www-form-urlencoded' && body) {
+            const params = {};
+            body.split('\n').forEach(line => {
+                const [key, value] = line.split('=', 2);
+                if (key && value !== undefined) {
+                    params[key.trim()] = value.trim();
+                }
+            });
+            requestData.data = params;
+        } else {
+            requestData.data = body;
+        }
+    }
 
     $('#loading-overlay').css('display', 'flex');
     $('#send-btn').text('Loading...').prop('disabled', true);
@@ -124,9 +164,9 @@ function sendRequest() {
             $.ajax({
                 url: url,
                 method: method,
-                data: method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH' ? body : undefined,
-                contentType: contentType,
-                success: function(response, status, xhr) {
+                data: requestData.data,
+                contentType: contentType !== 'none' ? contentType : false,
+                success: function (response, status, xhr) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let responseText = JSON.stringify(response, null, 2);
                     if (attemptedHeaders.length > 0) {
@@ -136,15 +176,25 @@ function sendRequest() {
                     $('#response-status').text(`${xhr.status} ${xhr.statusText}`).addClass('success');
                     $('#response-time').text(`${responseTime} ms`);
                     const respHeaders = [];
-
-                    console.log(xhr.getAllResponseHeaders())
-
-                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function(header) {
+                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function (header) {
                         respHeaders.push(header);
                     });
                     $('#response-headers').text(respHeaders.join('\n'));
+
+                    // 在sendRequest的success中
+                    if (xhr.status === 200) {
+                        console.log(requestData.data)
+                        const curlString = generateCurl(url, headers, requestData.data, contentType);
+                        console.log(curlString)
+
+                        // fetch('/api/history', {
+                        //     method: 'POST',
+                        //     headers: { 'Content-Type': 'application/json' },
+                        //     body: JSON.stringify({ url, curl: curlString, status_code: xhr.status })
+                        // }).catch(err => console.error('Failed to save history:', err));
+                    }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let errorMsg = `Error: ${error}\n${xhr.responseText}`;
                     if (xhr.status === 0) {
@@ -159,7 +209,7 @@ function sendRequest() {
                     $('#response-time').text(`${responseTime} ms`);
                     $('#response-headers').text(xhr.getAllResponseHeaders());
                 },
-                complete: function() {
+                complete: function () {
                     $('#loading-overlay').css('display', 'none');
                     $('#send-btn').text('Send').prop('disabled', false);
                 }
@@ -189,7 +239,8 @@ function parseCurl() {
         url: "",
         method: "GET",
         headers: {},
-        data: ""
+        data: "",
+        urlEncodedParams: []
     };
 
     const cleanText = curlText.replace(/\\\s*\n\s*/g, " ").trim();
@@ -199,6 +250,7 @@ function parseCurl() {
         return false;
     }
 
+    // Parse URL
     for (let i = 1; i < parts.length; i++) {
         if (!parts[i].startsWith("-")) {
             result.url = parts[i].replace(/^['"]|['"]$/g, "");
@@ -206,6 +258,7 @@ function parseCurl() {
         }
     }
 
+    // Parse method, headers, and data
     for (let i = 1; i < parts.length; i++) {
         if (parts[i] === "-X" || parts[i] === "--request") {
             result.method = parts[i + 1].replace(/^['"]|['"]$/g, "").toUpperCase();
@@ -220,6 +273,11 @@ function parseCurl() {
             i++;
         } else if (parts[i] === "--data-raw" || parts[i] === "-d" || parts[i] === "--data") {
             result.data = parts[i + 1].replace(/^['"]|['"]$/g, "");
+            result.method = "POST";
+            i++;
+        } else if (parts[i] === "--data-urlencode") {
+            const param = parts[i + 1].replace(/^['"]|['"]$/g, "");
+            result.urlEncodedParams.push(param);
             result.method = "POST";
             i++;
         }
@@ -239,15 +297,51 @@ function parseCurl() {
     }
 
     const contentTypeHeader = Object.keys(result.headers).find(key => key.toLowerCase() === 'content-type');
-    if (contentTypeHeader && $('#content-type-select option[value="' + result.headers[contentTypeHeader] + '"]').length > 0) {
-        $('#content-type-select').val(result.headers[contentTypeHeader]);
-    } else if (contentTypeHeader) {
-        $('#content-type-select').val('application/json');
-        // Content-Type already added in headers
-    } else {
-        $('#content-type-select').val('application/json');
+    let normalizedContentType = 'none';
+    if (contentTypeHeader) {
+        const headerValue = result.headers[contentTypeHeader].toLowerCase();
+        if (headerValue.startsWith('application/json')) {
+            normalizedContentType = 'application/json';
+        } else if (headerValue.startsWith('application/x-www-form-urlencoded')) {
+            normalizedContentType = 'application/x-www-form-urlencoded';
+        }
     }
 
-    $('#body-textarea').val(result.data);
+    if ($('input[name="content-type"][value="' + normalizedContentType + '"]').length > 0) {
+        $('input[name="content-type"][value="' + normalizedContentType + '"]').prop('checked', true);
+    } else {
+        $('input[name="content-type"][value="none"]').prop('checked', true);
+        $('#headers-container .header-row').each(function () {
+            const keyInput = $(this).find('.header-key');
+            if (keyInput.val().toLowerCase() === 'content-type') {
+                $(this).remove();
+            }
+        });
+    }
+
+    const contentType = contentTypeHeader ? result.headers[contentTypeHeader] : 'none';
+    if (normalizedContentType === 'application/x-www-form-urlencoded' && result.urlEncodedParams.length > 0) {
+        $('#body-textarea').val(result.urlEncodedParams.join('\n'));
+    } else {
+        $('#body-textarea').val(result.data);
+    }
+
     return true;
+}
+
+function generateCurl(url, headers, body, contentType) {
+    let curl = `curl --location '${url.replace(/'/g, "\\'")}'`;
+    for (const [key, value] of Object.entries(headers)) {
+        curl += ` -H '${key}: ${value.replace(/'/g, "\\'")}'`;
+    }
+    if (body && contentType.startsWith('application/x-www-form-urlencoded') && typeof body === 'object') {
+        for (const [key, value] of Object.entries(body)) {
+            if (key && value !== undefined) {
+                curl += ` --data-urlencode '${key}=${value.replace(/'/g, "\\'")}'`;
+            }
+        }
+    } else if (body && typeof body === 'string') {
+        curl += ` --data-raw '${body.replace(/'/g, "\\'")}'`;
+    }
+    return curl;
 }

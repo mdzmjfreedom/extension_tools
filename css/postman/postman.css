@@ -27,12 +27,13 @@ body, html {
     flex: 1;
     padding: 10px;
     background-color: #f8f8f8;
-    overflow: hidden; /* 禁止外层滑动 */
+    overflow: hidden;
 }
 
 #request-form {
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 #url-bar {
@@ -69,12 +70,41 @@ body, html {
     margin-left: 10px;
 }
 
-#content-type {
+#request-tabs {
+    display: flex;
     margin-bottom: 10px;
 }
 
-#headers-section, #body-section {
-    margin-bottom: 10px;
+.request-tab {
+    padding: 5px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #e0e0e0;
+    margin-right: 5px;
+}
+
+.request-tab.active {
+    background-color: #ffffff;
+    border-bottom: none;
+}
+
+#body-section, #headers-section {
+    display: none;
+    flex: 1;
+}
+
+#body-section.active, #headers-section.active {
+    display: flex;
+    flex-direction: column;
+}
+
+#headers-section {
+    overflow: auto;
+}
+
+#headers-container {
+    flex: 1;
+    overflow: auto;
 }
 
 .header-row {
@@ -99,10 +129,24 @@ body, html {
 
 #body-textarea {
     width: 100%;
-    height: 150px;
+    height: 100%;
+    min-height: 100px;
     padding: 5px;
     border: 1px solid #ccc;
     box-sizing: border-box;
+    flex: 1;
+}
+
+#content-type-radios {
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#content-type-radios label {
+    margin-right: 15px;
+    font-size: 14px;
 }
 
 #curl-modal {
@@ -216,8 +260,7 @@ body, html {
     background-color: #ffffff;
     white-space: pre-wrap;
     overflow: auto;
-    height: calc(100% - 40px); /* 减去#response-tabs高度 */
-    font-size: 13px;
+    height: calc(100% - 40px);
 }
 
 #response-body.active, #response-headers.active {
