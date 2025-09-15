@@ -317,6 +317,7 @@ body, html {
     white-space: pre-wrap;
     overflow: auto;
     height: calc(100% - 40px);
+    font-size: 12px;
 }
 
 #response-body.active, #response-headers.active {
