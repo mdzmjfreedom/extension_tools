@@ -57,8 +57,8 @@ body, html {
 #history-suggestions {
     position: absolute;
     top: calc(100% + 0px); /* 稍微向下偏移，避免覆盖 #url-input */
-    left: 93px; /* 与 #method-select 的宽度 + margin-right 对齐 */
-    width: calc(100% - 261px); /* 宽度与 #url-input 一致，减去 #method-select 和按钮的宽度 */
+    left: 79px; /* 与 #method-select 的宽度 + margin-right 对齐 */
+    width: calc(100% - 247px); /* 宽度与 #url-input 一致，减去 #method-select 和按钮的宽度 */
     background: white;
     border: 1px solid #ccc;
     border-radius: 3px;
