@@ -16,19 +16,14 @@
                 <select id="method-select">
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="DELETE">DELETE</option>
-                    <option value="PATCH">PATCH</option>
+<!--                    <option value="PUT">PUT</option>-->
+<!--                    <option value="DELETE">DELETE</option>-->
+<!--                    <option value="PATCH">PATCH</option>-->
                 </select>
                 <input type="text" id="url-input" placeholder="Enter URL">
                 <button type="button" id="send-btn">Send</button>
                 <button type="button" id="curl-btn">Import cURL</button>
-                <div id="history-suggestions">
-                    <div class="history-item" data-curl="curlssssss">
-                        <div class="history-url">No matching history</div>
-                        <div class="history-time">2025-09-03 15:00:00</div>
-                    </div>
-                </div>
+                <div id="history-suggestions"></div>
             </div>
             <div id="request-tabs">
                 <div class="request-tab active" data-tab="body">Body</div>
@@ -39,8 +34,8 @@
                     <label><input type="radio" name="content-type" value="none" checked> none</label>
                     <label><input type="radio" name="content-type" value="application/json"> application/json</label>
                     <label><input type="radio" name="content-type" value="application/x-www-form-urlencoded"> application/x-www-form-urlencoded</label>
-                    <label><input type="radio" name="content-type" value="text/plain"> text/plain</label>
-                    <label><input type="radio" name="content-type" value="multipart/form-data"> multipart/form-data</label>
+<!--                    <label><input type="radio" name="content-type" value="text/plain"> text/plain</label>-->
+<!--                    <label><input type="radio" name="content-type" value="multipart/form-data"> multipart/form-data</label>-->
                 </div>
                 <textarea id="body-textarea" placeholder="Enter request body"></textarea>
             </div>
