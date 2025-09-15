@@ -1,21 +1,21 @@
-$(document).ready(function () {
+$(document).ready(function() {
     // Add initial header row
-    // addHeaderRow();
+    addHeaderRow();
 
     // Add header button
-    $('#add-header-btn').click(function () {
+    $('#add-header-btn').click(function() {
         addHeaderRow();
         // Force scroll to bottom to show new header row
         $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
     });
 
     // Send request
-    $('#send-btn').click(function () {
+    $('#send-btn').click(function() {
         sendRequest();
     });
 
     // Show cURL modal and focus input
-    $('#curl-btn').click(function () {
+    $('#curl-btn').click(function() {
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
         $('#curl-modal').css('display', 'flex');
@@ -24,7 +24,7 @@ $(document).ready(function () {
     });
 
     // Parse cURL
-    $('#parse-curl-btn').click(function () {
+    $('#parse-curl-btn').click(function() {
         if (parseCurl()) {
             $('#curl-modal').css('display', 'none');
             $('#curl-btn').prop('disabled', false);
@@ -32,7 +32,7 @@ $(document).ready(function () {
     });
 
     // Cancel cURL modal
-    $('#cancel-curl-btn').click(function () {
+    $('#cancel-curl-btn').click(function() {
         $('#curl-modal').css('display', 'none');
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
@@ -40,7 +40,7 @@ $(document).ready(function () {
     });
 
     // Close modal on Esc key
-    $(document).keydown(function (e) {
+    $(document).keydown(function(e) {
         if (e.key === 'Escape' && $('#curl-modal').is(':visible')) {
             $('#curl-modal').css('display', 'none');
             $('#curl-input').val('');
@@ -50,7 +50,7 @@ $(document).ready(function () {
     });
 
     // Request tab switching
-    $('.request-tab').click(function () {
+    $('.request-tab').click(function() {
         $('.request-tab').removeClass('active');
         $(this).addClass('active');
         $('#body-section, #headers-section').removeClass('active');
@@ -58,7 +58,7 @@ $(document).ready(function () {
     });
 
     // Response tab switching
-    $('.tab').click(function () {
+    $('.tab').click(function() {
         $('.tab').removeClass('active');
         $(this).addClass('active');
         $('#response-body, #response-headers').removeClass('active');
@@ -66,10 +66,10 @@ $(document).ready(function () {
     });
 
     // Content-Type radio change
-    $('input[name="content-type"]').change(function () {
+    $('input[name="content-type"]').change(function() {
         const contentType = $(this).val();
         // Remove existing Content-Type header row
-        $('#headers-container .header-row').each(function () {
+        $('#headers-container .header-row').each(function() {
             const keyInput = $(this).find('.header-key');
             if (keyInput.val().toLowerCase() === 'content-type') {
                 $(this).remove();
@@ -83,45 +83,42 @@ $(document).ready(function () {
     });
 
     // URL input for history suggestions
-    $('#url-input').on('input', function () {
+    $('#url-input').on('input', function() {
         const query = $(this).val().trim();
-        if (query.length >= 1) {
-            $.ajax({
-                url: `http://127.0.0.1:4430/curlHistory/query?url=${encodeURIComponent(query)}`,
-                method: 'GET',
-                success: function (data) {
+        if (query.length >= 3) {
+            fetch(`/api/history?query=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
                     $('#history-suggestions').empty().show();
-                    if (!data.success || !data.result || data.result.length === 0) {
+                    if (data.length === 0) {
                         $('#history-suggestions').append('<div class="history-item">No matching history</div>');
                     } else {
-                        data.result.forEach(item => {
+                        data.forEach(item => {
                             const itemDiv = $(`
-                                <div class="history-item" data-curl="${item.curlString.replace(/"/g, '&quot;')}">
+                                <div class="history-item" data-curl="${item.curl_string.replace(/"/g, '&quot;')}">
                                     <div class="history-url">${item.url}</div>
-                                    <div class="history-time">${item.createdAt}</div>
+                                    <div class="history-time">${new Date(item.created_at).toLocaleString()}</div>
                                 </div>
                             `);
                             $('#history-suggestions').append(itemDiv);
-
-                            itemDiv.click(function () {
+                            itemDiv.click(function() {
                                 parseCurl($(this).data('curl'));
                                 $('#history-suggestions').hide();
                             });
                         });
                     }
-                },
-                error: function (xhr, status, error) {
-                    console.error('Failed to fetch history:', error);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch history:', err);
                     $('#history-suggestions').empty().show().append('<div class="history-item">Error fetching history</div>');
-                }
-            });
+                });
         } else {
             $('#history-suggestions').hide();
         }
     });
 
     // Hide suggestions when clicking outside
-    $(document).click(function (e) {
+    $(document).click(function(e) {
         if (!$(e.target).closest('#url-input, #history-suggestions').length) {
             $('#history-suggestions').hide();
         }
@@ -135,9 +132,26 @@ function addHeaderRow(key = '', value = '') {
     row.append('<button type="button" class="remove-header-btn" style="margin-left:5px; background-color:#dc3545; color:white; border:none; padding:5px 10px; cursor:pointer;">Remove</button>');
     $('#headers-container').append(row);
 
-    row.find('.remove-header-btn').click(function () {
+    row.find('.remove-header-btn').click(function() {
         row.remove();
     });
+}
+
+function generateCurl(method, url, headers, body, contentType) {
+    let curl = `curl -X ${method} '${url.replace(/'/g, "\\'")}'`;
+    for (const [key, value] of Object.entries(headers)) {
+        curl += ` -H '${key}: ${value.replace(/'/g, "\\'")}'`;
+    }
+    if (body && contentType.startsWith('application/x-www-form-urlencoded') && typeof body === 'object') {
+        for (const [key, value] of Object.entries(body)) {
+            if (key && value !== undefined) {
+                curl += ` --data-urlencode '${key}=${value.replace(/'/g, "\\'")}'`;
+            }
+        }
+    } else if (body && typeof body === 'string') {
+        curl += ` --data-raw '${body.replace(/'/g, "\\'")}'`;
+    }
+    return curl;
 }
 
 function sendRequest() {
@@ -166,7 +180,7 @@ function sendRequest() {
 
     const headers = {};
     const attemptedHeaders = [];
-    $('#headers-container .header-row').each(function () {
+    $('#headers-container .header-row').each(function() {
         const key = $(this).find('.header-key').val().trim();
         const value = $(this).find('.header-value').val().trim();
         if (key) {
@@ -174,12 +188,12 @@ function sendRequest() {
             attemptedHeaders.push(key);
         }
     });
-    // Only set Content-Type if not 'none'
     if (contentType !== 'none') {
         headers['Content-Type'] = contentType;
     }
 
-    let requestData = {url, method, headers};
+    let requestData = { url, method, headers };
+    let curlBody = body; // Default for application/json or none
     if (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH') {
         if (contentType === 'application/x-www-form-urlencoded' && body) {
             const params = {};
@@ -190,6 +204,7 @@ function sendRequest() {
                 }
             });
             requestData.data = params;
+            curlBody = params; // Use params object for generateCurl
         } else {
             requestData.data = body;
         }
@@ -211,7 +226,7 @@ function sendRequest() {
                 method: method,
                 data: requestData.data,
                 contentType: contentType !== 'none' ? contentType : false,
-                success: function (response, status, xhr) {
+                success: function(response, status, xhr) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let responseText = JSON.stringify(response, null, 2);
                     if (attemptedHeaders.length > 0) {
@@ -221,34 +236,22 @@ function sendRequest() {
                     $('#response-status').text(`${xhr.status} ${xhr.statusText}`).addClass('success');
                     $('#response-time').text(`${responseTime} ms`);
                     const respHeaders = [];
-                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function (header) {
+                    xhr.getAllResponseHeaders().trim().split('\n').forEach(function(header) {
                         respHeaders.push(header);
                     });
                     $('#response-headers').text(respHeaders.join('\n'));
 
-                    // 在sendRequest的success中
+                    // Save history for status 200
                     if (xhr.status === 200) {
-                        console.log(requestData.data)
-                        const curlString = generateCurl(url, headers, requestData.data, contentType);
-                        console.log(curlString)
-
-                        $.ajax({
-                            url: 'http://127.0.0.1:4430/curlHistory/save',
+                        const curlString = generateCurl(method, url, headers, curlBody, contentType);
+                        fetch('/api/history', {
                             method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({url, curlString}),
-                            success: function (data) {
-                                if (!data.success) {
-                                    console.error('Failed to save history:', data.message);
-                                }
-                            },
-                            error: function (xhr, status, error) {
-                                console.error('Failed to save history:', error);
-                            }
-                        });
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url, curl: curlString })
+                        }).catch(err => console.error('Failed to save history:', err));
                     }
                 },
-                error: function (xhr, status, error) {
+                error: function(xhr, status, error) {
                     const responseTime = Math.round(performance.now() - startTime);
                     let errorMsg = `Error: ${error}\n${xhr.responseText}`;
                     if (xhr.status === 0) {
@@ -263,7 +266,7 @@ function sendRequest() {
                     $('#response-time').text(`${responseTime} ms`);
                     $('#response-headers').text(xhr.getAllResponseHeaders());
                 },
-                complete: function () {
+                complete: function() {
                     $('#loading-overlay').css('display', 'none');
                     $('#send-btn').text('Send').prop('disabled', false);
                 }
@@ -279,13 +282,11 @@ function sendRequest() {
 }
 
 function parseCurl(curlText) {
-    // 使用传入的 curlText，如果未传入则获取 #curl-input 的值
-    const text = curlText || $('#curl-input').val().trim();
-    if (!text) {
+    if (!curlText) {
         $('#curl-error').text('Error: cURL command cannot be empty').show();
         return false;
     }
-    if (!text.startsWith('curl')) {
+    if (!curlText.startsWith('curl')) {
         $('#curl-error').text('Error: Invalid cURL command').show();
         return false;
     }
@@ -298,7 +299,7 @@ function parseCurl(curlText) {
         urlEncodedParams: []
     };
 
-    const cleanText = text.replace(/\\\s*\n\s*/g, " ").trim();
+    const cleanText = curlText.replace(/\\\s*\n\s*/g, " ").trim();
     const parts = cleanText.match(/'[^']+'|"[^"]+"|[^\s'"]+/g) || [];
     if (!parts.length || parts[0] !== "curl") {
         $('#curl-error').text('Error: Invalid cURL command structure').show();
@@ -366,7 +367,7 @@ function parseCurl(curlText) {
         $('input[name="content-type"][value="' + normalizedContentType + '"]').prop('checked', true);
     } else {
         $('input[name="content-type"][value="none"]').prop('checked', true);
-        $('#headers-container .header-row').each(function () {
+        $('#headers-container .header-row').each(function() {
             const keyInput = $(this).find('.header-key');
             if (keyInput.val().toLowerCase() === 'content-type') {
                 $(this).remove();
@@ -382,21 +383,4 @@ function parseCurl(curlText) {
     }
 
     return true;
-}
-
-function generateCurl(url, headers, body, contentType) {
-    let curl = `curl --location '${url.replace(/'/g, "\\'")}'`;
-    for (const [key, value] of Object.entries(headers)) {
-        curl += ` -H '${key}: ${value.replace(/'/g, "\\'")}'`;
-    }
-    if (body && contentType.startsWith('application/x-www-form-urlencoded') && typeof body === 'object') {
-        for (const [key, value] of Object.entries(body)) {
-            if (key && value !== undefined) {
-                curl += ` --data-urlencode '${key}=${value.replace(/'/g, "\\'")}'`;
-            }
-        }
-    } else if (body && typeof body === 'string') {
-        curl += ` --data-raw '${body.replace(/'/g, "\\'")}'`;
-    }
-    return curl;
 }

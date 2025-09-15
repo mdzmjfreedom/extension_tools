@@ -40,6 +40,7 @@ body, html {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
+    position: relative; /* 定位上下文 */
 }
 
 #method-select {
@@ -51,6 +52,39 @@ body, html {
     flex: 1;
     padding: 5px;
     margin-right: 10px;
+}
+
+#history-suggestions {
+    position: absolute;
+    top: calc(100% + 0px); /* 稍微向下偏移，避免覆盖 #url-input */
+    left: 93px; /* 与 #method-select 的宽度 + margin-right 对齐 */
+    width: calc(100% - 261px); /* 宽度与 #url-input 一致，减去 #method-select 和按钮的宽度 */
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none; /* 默认隐藏 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 可选：添加阴影 */
+}
+
+.history-item {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.history-item:hover {
+    background-color: #f0f0f0;
+}
+
+.history-url {
+    font-weight: bold;
+}
+
+.history-time {
+    color: #555;
+    font-size: 0.9em;
 }
 
 #send-btn {
@@ -261,6 +295,7 @@ body, html {
     white-space: pre-wrap;
     overflow: auto;
     height: calc(100% - 40px);
+    font-size: 11px;
 }
 
 #response-body.active, #response-headers.active {
