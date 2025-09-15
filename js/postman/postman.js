@@ -14,11 +14,14 @@ $(document).ready(function () {
         sendRequest();
     });
 
-    // Show cURL modal and focus input
+    // Show cURL modal with animation
     $('#curl-btn').click(function () {
         $('#curl-input').val('');
         $('#curl-error').hide().text('');
-        $('#curl-modal').css('display', 'flex');
+        $('#curl-modal').css('display', 'flex'); // 显示并触发动画
+        setTimeout(() => {
+            $('#curl-modal').addClass('show'); // 延迟添加 show 类以触发动画
+        }, 10); // 短暂延迟确保过渡生效
         $('#curl-btn').prop('disabled', true);
         $('#curl-input').focus();
     });
@@ -26,27 +29,49 @@ $(document).ready(function () {
     // Parse cURL
     $('#parse-curl-btn').click(function () {
         if (parseCurl()) {
-            $('#curl-modal').css('display', 'none');
+            $('#curl-modal').removeClass('show'); // 触发淡出动画
+            setTimeout(() => {
+                $('#curl-modal').css('display', 'none'); // 动画结束后隐藏
+                $('#curl-input').val(''); // 清空输入框
+                $('#curl-error').hide().text(''); // 清除错误提示
+            }, 300); // 与 CSS transition 时长一致
             $('#curl-btn').prop('disabled', false);
         }
     });
 
     // Cancel cURL modal
     $('#cancel-curl-btn').click(function () {
-        $('#curl-modal').css('display', 'none');
-        $('#curl-input').val('');
-        $('#curl-error').hide().text('');
-        $('#curl-btn').prop('disabled', false);
+        $('#curl-modal').removeClass('show'); // 触发淡出动画
+        setTimeout(() => {
+            $('#curl-modal').css('display', 'none'); // 动画结束后隐藏
+            $('#curl-input').val('');
+            $('#curl-error').hide().text('');
+            $('#curl-btn').prop('disabled', false);
+        }, 300); // 与 CSS transition 时长一致
     });
 
     // Close modal on Esc key
     $(document).keydown(function (e) {
         if (e.key === 'Escape' && $('#curl-modal').is(':visible')) {
-            $('#curl-modal').css('display', 'none');
-            $('#curl-input').val('');
-            $('#curl-error').hide().text('');
-            $('#curl-btn').prop('disabled', false);
+            $('#curl-modal').removeClass('show'); // 触发淡出动画
+            setTimeout(() => {
+                $('#curl-modal').css('display', 'none'); // 动画结束后隐藏
+                $('#curl-input').val('');
+                $('#curl-error').hide().text('');
+                $('#curl-btn').prop('disabled', false);
+            }, 300); // 与 CSS transition 时长一致
         }
+
+        // else if (e.key === "q" && !$('#curl-modal').is(':visible')) {
+        //     $('#curl-input').val('');
+        //     $('#curl-error').hide().text('');
+        //     $('#curl-modal').css('display', 'flex'); // 显示并触发动画
+        //     setTimeout(() => {
+        //         $('#curl-modal').addClass('show'); // 延迟添加 show 类以触发动画
+        //     }, 10); // 短暂延迟确保过渡生效
+        //     $('#curl-btn').prop('disabled', true);
+        //     $('#curl-input').focus();
+        // }
     });
 
     // Request tab switching
@@ -85,7 +110,13 @@ $(document).ready(function () {
     // URL input for history suggestions
     $('#url-input').on('input', function () {
         const query = $(this).val().trim();
-        if (query.length >= 1) {
+        const urlInput = $(this);
+        const methodSelectWidth = $('#method-select').outerWidth(true); // 包括 margin
+        $('#history-suggestions').css({
+            'width': urlInput.outerWidth() + 'px',
+            'left': methodSelectWidth + 'px' // 动态计算 #method-select 的宽度
+        });
+        if (query.length >= 3) {
             $.ajax({
                 url: `http://127.0.0.1:4430/curlHistory/query?url=${encodeURIComponent(query)}`,
                 method: 'GET',
@@ -98,11 +129,10 @@ $(document).ready(function () {
                             const itemDiv = $(`
                                 <div class="history-item" data-curl="${item.curlString.replace(/"/g, '&quot;')}">
                                     <div class="history-url">${item.url}</div>
-                                    <div class="history-time">${item.createdAt}</div>
+                                    <div class="history-time">${new Date(item.createdAt).toLocaleString()}</div>
                                 </div>
                             `);
                             $('#history-suggestions').append(itemDiv);
-
                             itemDiv.click(function () {
                                 parseCurl($(this).data('curl'));
                                 $('#history-suggestions').hide();

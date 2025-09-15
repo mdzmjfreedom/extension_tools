@@ -40,7 +40,7 @@ body, html {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    position: relative; /* 定位上下文 */
+    position: relative;
 }
 
 #method-select {
@@ -56,17 +56,17 @@ body, html {
 
 #history-suggestions {
     position: absolute;
-    top: calc(100% + 0px); /* 稍微向下偏移，避免覆盖 #url-input */
-    left: 79px; /* 与 #method-select 的宽度 + margin-right 对齐 */
-    width: calc(100% - 247px); /* 宽度与 #url-input 一致，减去 #method-select 和按钮的宽度 */
+    top: calc(100% + 5px);
+    left: 110px;
+    width: calc(100% - 220px);
     background: white;
     border: 1px solid #ccc;
     border-radius: 3px;
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
-    display: none; /* 默认隐藏 */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 可选：添加阴影 */
+    display: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .history-item {
@@ -194,6 +194,12 @@ body, html {
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    opacity: 0; /* 初始透明 */
+    transition: opacity 0.3s ease-in-out; /* 淡入淡出动画 */
+}
+
+#curl-modal.show {
+    opacity: 1; /* 显示时的透明度 */
 }
 
 #curl-modal-content {
@@ -203,6 +209,22 @@ body, html {
     width: 80%;
     max-width: 600px;
     box-sizing: border-box;
+
+    /*transform: scale(0.8); !* 初始缩小 *!*/
+    /*opacity: 0; !* 初始透明 *!*/
+    /*transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; !* 缩放和淡入动画 *!*/
+
+    transform: translateY(-20px); /* 从上方滑入 */
+    opacity: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+#curl-modal.show #curl-modal-content {
+    /*transform: scale(1); !* 显示时恢复正常大小 *!*/
+    /*opacity: 1; !* 显示时完全不透明 *!*/
+
+    transform: translateY(0);
+    opacity: 1;
 }
 
 #curl-input {
@@ -295,7 +317,6 @@ body, html {
     white-space: pre-wrap;
     overflow: auto;
     height: calc(100% - 40px);
-    font-size: 11px;
 }
 
 #response-body.active, #response-headers.active {
