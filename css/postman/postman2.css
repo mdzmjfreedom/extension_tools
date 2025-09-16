@@ -182,7 +182,7 @@ body, html {
     color: white;
     border: none;
     cursor: pointer;
-    margin-bottom: 10px;
+    margin-left: auto; /* 靠右对齐 */
 }
 
 #format-json-btn.hidden {
@@ -212,12 +212,12 @@ body, html {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    opacity: 0; /* 初始透明 */
+    transition: opacity 0.3s ease-in-out; /* 淡入淡出动画 */
 }
 
 #curl-modal.show {
-    opacity: 1;
+    opacity: 1; /* 显示时的透明度 */
 }
 
 #curl-modal-content {
@@ -227,12 +227,20 @@ body, html {
     width: 80%;
     max-width: 600px;
     box-sizing: border-box;
-    transform: translateY(-20px);
+
+    /*transform: scale(0.8); !* 初始缩小 *!*/
+    /*opacity: 0; !* 初始透明 *!*/
+    /*transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; !* 缩放和淡入动画 *!*/
+
+    transform: translateY(-20px); /* 从上方滑入 */
     opacity: 0;
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }
 
 #curl-modal.show #curl-modal-content {
+    /*transform: scale(1); !* 显示时恢复正常大小 *!*/
+    /*opacity: 1; !* 显示时完全不透明 *!*/
+
     transform: translateY(0);
     opacity: 1;
 }
