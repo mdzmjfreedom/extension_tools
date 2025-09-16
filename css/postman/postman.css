@@ -78,6 +78,10 @@ body, html {
     background-color: #f0f0f0;
 }
 
+.history-item.selected {
+    background-color: #cce5ff; /* 高亮选中项 */
+}
+
 .history-url {
     font-weight: bold;
 }
@@ -169,6 +173,7 @@ body, html {
     border: 1px solid #ccc;
     box-sizing: border-box;
     flex: 1;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 #content-type-radios {

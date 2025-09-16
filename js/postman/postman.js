@@ -1,4 +1,6 @@
 $(document).ready(function () {
+    var selectedIndex = -1; // 跟踪选中的历史项索引
+
     // Add initial header row
     // addHeaderRow();
 
@@ -50,7 +52,7 @@ $(document).ready(function () {
         }, 300); // 与 CSS transition 时长一致
     });
 
-    // Close modal on Esc key
+    // Close modal on Esc key and handle history suggestions keyboard navigation
     $(document).keydown(function (e) {
         if (e.key === 'Escape' && $('#curl-modal').is(':visible')) {
             $('#curl-modal').removeClass('show'); // 触发淡出动画
@@ -60,18 +62,31 @@ $(document).ready(function () {
                 $('#curl-error').hide().text('');
                 $('#curl-btn').prop('disabled', false);
             }, 300); // 与 CSS transition 时长一致
-        }
+        } else if ($('#history-suggestions').is(':visible')) {
+            // 只选择有 data-curl 属性的 .history-item
+            const items = $('.history-item[data-curl]');
+            if (items.length === 0) return; // 如果没有有效历史记录，直接返回
 
-        // else if (e.key === "q" && !$('#curl-modal').is(':visible')) {
-        //     $('#curl-input').val('');
-        //     $('#curl-error').hide().text('');
-        //     $('#curl-modal').css('display', 'flex'); // 显示并触发动画
-        //     setTimeout(() => {
-        //         $('#curl-modal').addClass('show'); // 延迟添加 show 类以触发动画
-        //     }, 10); // 短暂延迟确保过渡生效
-        //     $('#curl-btn').prop('disabled', true);
-        //     $('#curl-input').focus();
-        // }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault(); // 防止页面滚动
+                selectedIndex = (selectedIndex + 1) % items.length;
+                items.removeClass('selected').eq(selectedIndex).addClass('selected');
+                // 确保选中项可见
+                items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault(); // 防止页面滚动
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                items.removeClass('selected').eq(selectedIndex).addClass('selected');
+                // 确保选中项可见
+                items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault(); // 防止表单提交
+                const selectedItem = items.eq(selectedIndex);
+                parseCurl(selectedItem.data('curl'));
+                $('#history-suggestions').hide();
+                selectedIndex = -1; // 重置索引
+            }
+        }
     });
 
     // Request tab switching
@@ -93,6 +108,7 @@ $(document).ready(function () {
     // Content-Type radio change
     $('input[name="content-type"]').change(function () {
         const contentType = $(this).val();
+
         // Remove existing Content-Type header row
         $('#headers-container .header-row').each(function () {
             const keyInput = $(this).find('.header-key');
@@ -100,10 +116,24 @@ $(document).ready(function () {
                 $(this).remove();
             }
         });
+
         // Add new Content-Type header row if not 'none'
         if (contentType !== 'none') {
             addHeaderRow('Content-Type', contentType);
             $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
+        }
+
+        // Format JSON in body-textarea if content-type is application/json
+        if (contentType === 'application/json') {
+            const body = $('#body-textarea').val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $('#body-textarea').val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input if invalid JSON
+                }
+            }
         }
     });
 
@@ -122,6 +152,7 @@ $(document).ready(function () {
                 method: 'GET',
                 success: function (data) {
                     $('#history-suggestions').empty().show();
+                    selectedIndex = -1; // 重置选中索引
                     if (!data.success || !data.result || data.result.length === 0) {
                         $('#history-suggestions').append('<div class="history-item">No matching history</div>');
                     } else {
@@ -136,6 +167,7 @@ $(document).ready(function () {
                             itemDiv.click(function () {
                                 parseCurl($(this).data('curl'));
                                 $('#history-suggestions').hide();
+                                selectedIndex = -1; // 重置索引
                             });
                         });
                     }
@@ -143,10 +175,12 @@ $(document).ready(function () {
                 error: function (xhr, status, error) {
                     console.error('Failed to fetch history:', error);
                     $('#history-suggestions').empty().show().append('<div class="history-item">Error fetching history</div>');
+                    selectedIndex = -1; // 重置选中索引
                 }
             });
         } else {
             $('#history-suggestions').hide();
+            selectedIndex = -1; // 重置选中索引
         }
     });
 
@@ -154,6 +188,38 @@ $(document).ready(function () {
     $(document).click(function (e) {
         if (!$(e.target).closest('#url-input, #history-suggestions').length) {
             $('#history-suggestions').hide();
+            selectedIndex = -1; // 重置选中索引
+        }
+    });
+
+    // Auto-format JSON in body-textarea on blur
+    $('#body-textarea').on('blur', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input if invalid JSON
+                }
+            }
+        }
+    });
+
+    $('#body-textarea').on('input', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input
+                }
+            }
         }
     });
 });
@@ -178,7 +244,7 @@ function sendRequest() {
     const method = $('#method-select').val();
     const url = $('#url-input').val().trim();
     const contentType = $('input[name="content-type"]:checked').val();
-    const body = $('#body-textarea').val();
+    const body = $('#body-textarea').val().trim();
 
     if (!url) {
         $('#response-body').text('Error: URL cannot be empty');
@@ -187,7 +253,8 @@ function sendRequest() {
 
     if (contentType === 'application/json' && body) {
         try {
-            JSON.parse(body);
+            const parsed = JSON.parse(body);
+            $('#body-textarea').val(JSON.stringify(parsed, null, 2)); // Format JSON in textarea
         } catch (e) {
             $('#response-body').text('Error: Invalid JSON format in body');
             return;
@@ -209,7 +276,7 @@ function sendRequest() {
         headers['Content-Type'] = contentType;
     }
 
-    let requestData = {url, method, headers};
+    let requestData = { url, method, headers };
     if (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH') {
         if (contentType === 'application/x-www-form-urlencoded' && body) {
             const params = {};
@@ -220,6 +287,8 @@ function sendRequest() {
                 }
             });
             requestData.data = params;
+        } else if (contentType === 'application/json' && body) {
+            requestData.data = JSON.parse(body); // Send parsed JSON object
         } else {
             requestData.data = body;
         }
@@ -258,15 +327,15 @@ function sendRequest() {
 
                     // 在sendRequest的success中
                     if (xhr.status === 200) {
-                        console.log(requestData.data)
+                        console.log(requestData.data);
                         const curlString = generateCurl(url, headers, requestData.data, contentType);
-                        console.log(curlString)
+                        console.log(curlString);
 
                         $.ajax({
                             url: 'http://127.0.0.1:4430/curlHistory/save',
                             method: 'POST',
                             contentType: 'application/json',
-                            data: JSON.stringify({url, curlString}),
+                            data: JSON.stringify({ url, curlString }),
                             success: function (data) {
                                 if (!data.success) {
                                     console.error('Failed to save history:', data.message);
@@ -405,7 +474,15 @@ function parseCurl(curlText) {
     }
 
     const contentType = contentTypeHeader ? result.headers[contentTypeHeader] : 'none';
-    if (normalizedContentType === 'application/x-www-form-urlencoded' && result.urlEncodedParams.length > 0) {
+    if (normalizedContentType === 'application/json' && result.data) {
+        try {
+            const parsed = JSON.parse(result.data);
+            $('#body-textarea').val(JSON.stringify(parsed, null, 2)); // Format JSON
+        } catch (e) {
+            $('#curl-error').text('Error: Invalid JSON format in cURL data').show();
+            return false;
+        }
+    } else if (normalizedContentType === 'application/x-www-form-urlencoded' && result.urlEncodedParams.length > 0) {
         $('#body-textarea').val(result.urlEncodedParams.join('\n'));
     } else {
         $('#body-textarea').val(result.data);
