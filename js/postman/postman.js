@@ -204,6 +204,22 @@ $(document).ready(function () {
             }
         }
     });
+
+    // Auto-format JSON in body-textarea on input
+    $('#body-textarea').on('input', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input
+                }
+            }
+        }
+    });
 });
 
 function addHeaderRow(key = '', value = '') {
