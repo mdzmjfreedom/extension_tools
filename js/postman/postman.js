@@ -108,7 +108,6 @@ $(document).ready(function () {
     // Content-Type radio change
     $('input[name="content-type"]').change(function () {
         const contentType = $(this).val();
-
         // Remove existing Content-Type header row
         $('#headers-container .header-row').each(function () {
             const keyInput = $(this).find('.header-key');
@@ -116,13 +115,11 @@ $(document).ready(function () {
                 $(this).remove();
             }
         });
-
         // Add new Content-Type header row if not 'none'
         if (contentType !== 'none') {
             addHeaderRow('Content-Type', contentType);
             $('#headers-container').scrollTop($('#headers-container')[0].scrollHeight);
         }
-
         // Format JSON in body-textarea if content-type is application/json
         if (contentType === 'application/json') {
             const body = $('#body-textarea').val().trim();
@@ -207,21 +204,6 @@ $(document).ready(function () {
             }
         }
     });
-
-    $('#body-textarea').on('input', function () {
-        const contentType = $('input[name="content-type"]:checked').val();
-        if (contentType === 'application/json') {
-            const body = $(this).val().trim();
-            if (body) {
-                try {
-                    const parsed = JSON.parse(body);
-                    $(this).val(JSON.stringify(parsed, null, 2));
-                } catch (e) {
-                    // Do nothing, keep raw input
-                }
-            }
-        }
-    });
 });
 
 function addHeaderRow(key = '', value = '') {
@@ -287,10 +269,8 @@ function sendRequest() {
                 }
             });
             requestData.data = params;
-        } else if (contentType === 'application/json' && body) {
-            requestData.data = JSON.parse(body); // Send parsed JSON object
         } else {
-            requestData.data = body;
+            requestData.data = body; // Keep body as string for application/json
         }
     }
 
