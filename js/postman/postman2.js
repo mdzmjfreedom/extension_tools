@@ -92,7 +92,7 @@ $(document).ready(function () {
 
     // Ctrl+Enter to send request
     $('#url-input').on('keydown', function (e) {
-        if (e.ctrlKey && e.key === 'Enter') {
+        if (e.ctrlKey && e.key === 'Enter' && !$('#send-btn').is(':disabled')) {
             e.preventDefault(); // 防止换行或表单提交
             sendRequest();
         }
@@ -234,37 +234,37 @@ $(document).ready(function () {
         }
     });
 
-    // // Auto-format JSON in body-textarea on blur
-    // $('#body-textarea').on('blur', function () {
-    //     const contentType = $('input[name="content-type"]:checked').val();
-    //     if (contentType === 'application/json') {
-    //         const body = $(this).val().trim();
-    //         if (body) {
-    //             try {
-    //                 const parsed = JSON.parse(body);
-    //                 $(this).val(JSON.stringify(parsed, null, 2));
-    //             } catch (e) {
-    //                 // Do nothing, keep raw input if invalid JSON
-    //             }
-    //         }
-    //     }
-    // });
-    //
-    // // Auto-format JSON in body-textarea on input
-    // $('#body-textarea').on('input', function () {
-    //     const contentType = $('input[name="content-type"]:checked').val();
-    //     if (contentType === 'application/json') {
-    //         const body = $(this).val().trim();
-    //         if (body) {
-    //             try {
-    //                 const parsed = JSON.parse(body);
-    //                 $(this).val(JSON.stringify(parsed, null, 2));
-    //             } catch (e) {
-    //                 // Do nothing, keep raw input
-    //             }
-    //         }
-    //     }
-    // });
+    // Auto-format JSON in body-textarea on blur
+    $('#body-textarea').on('blur', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input if invalid JSON
+                }
+            }
+        }
+    });
+
+    // Auto-format JSON in body-textarea on input
+    $('#body-textarea').on('input', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input
+                }
+            }
+        }
+    });
 });
 
 function addHeaderRow(key = '', value = '') {
