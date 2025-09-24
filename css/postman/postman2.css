@@ -66,7 +66,7 @@ body, html {
     overflow-y: auto;
     z-index: 1000;
     display: none;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .history-item {
@@ -183,6 +183,7 @@ body, html {
     border: none;
     cursor: pointer;
     margin-left: auto; /* 靠右对齐 */
+    /*height: 100%;*/
 }
 
 #format-json-btn.hidden {
@@ -208,7 +209,7 @@ body, html {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     align-items: center;
     justify-content: center;
     z-index: 1000;
@@ -357,7 +358,7 @@ body, html {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     align-items: center;
     justify-content: center;
     z-index: 2000;
@@ -373,6 +374,10 @@ body, html {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
