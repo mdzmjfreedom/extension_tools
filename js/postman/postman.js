@@ -38,6 +38,7 @@ $(document).ready(function () {
                 $('#curl-error').hide().text(''); // 清除错误提示
             }, 300); // 与 CSS transition 时长一致
             $('#curl-btn').prop('disabled', false);
+            $('#url-input').focus(); // 给焦点，为了后续Ctrl + Enter发起请求
         }
     });
 
@@ -72,13 +73,13 @@ $(document).ready(function () {
                 selectedIndex = (selectedIndex + 1) % items.length;
                 items.removeClass('selected').eq(selectedIndex).addClass('selected');
                 // 确保选中项可见
-                items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                items.eq(selectedIndex)[0].scrollIntoView({block: 'nearest'});
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault(); // 防止页面滚动
                 selectedIndex = (selectedIndex - 1 + items.length) % items.length;
                 items.removeClass('selected').eq(selectedIndex).addClass('selected');
                 // 确保选中项可见
-                items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                items.eq(selectedIndex)[0].scrollIntoView({block: 'nearest'});
             } else if (e.key === 'Enter' && selectedIndex >= 0) {
                 e.preventDefault(); // 防止表单提交
                 const selectedItem = items.eq(selectedIndex);
@@ -90,8 +91,8 @@ $(document).ready(function () {
     });
 
     // Ctrl+Enter to send request
-    $('#url-input, #body-textarea').on('keydown', function (e) {
-        if (e.ctrlKey && e.key === 'Enter') {
+    $('#url-input').on('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'Enter' && !$('#send-btn').is(':disabled')) {
             e.preventDefault(); // 防止换行或表单提交
             sendRequest();
         }
@@ -147,6 +148,8 @@ $(document).ready(function () {
 
     // Format JSON button click
     $('#format-json-btn').click(function () {
+        e.preventDefault();
+
         const body = $('#body-textarea').val().trim();
         if (body) {
             try {
@@ -165,7 +168,7 @@ $(document).ready(function () {
             ? ($('#response-tabs .tab.active').data('tab') === 'body' ? 'application/json' : 'text/plain')
             : 'text/plain';
         const fileExtension = contentType.includes('application/json') ? '.json' : '.txt';
-        const blob = new Blob([responseText], { type: contentType });
+        const blob = new Blob([responseText], {type: contentType});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -246,6 +249,22 @@ $(document).ready(function () {
             }
         }
     });
+
+    // Auto-format JSON in body-textarea on input
+    $('#body-textarea').on('input', function () {
+        const contentType = $('input[name="content-type"]:checked').val();
+        if (contentType === 'application/json') {
+            const body = $(this).val().trim();
+            if (body) {
+                try {
+                    const parsed = JSON.parse(body);
+                    $(this).val(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Do nothing, keep raw input
+                }
+            }
+        }
+    });
 });
 
 function addHeaderRow(key = '', value = '') {
@@ -300,7 +319,7 @@ function sendRequest() {
         headers['Content-Type'] = contentType;
     }
 
-    let requestData = { url, method, headers };
+    let requestData = {url, method, headers};
     if (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH') {
         if (contentType === 'application/x-www-form-urlencoded' && body) {
             const params = {};
@@ -319,7 +338,7 @@ function sendRequest() {
     $('#loading-overlay').css('display', 'flex');
     $('#send-btn').text('Loading...').prop('disabled', true);
 
-    const startTime = performance.now();
+    var startTime = null;
 
     chrome.runtime.sendMessage({
         type: "setRequestHeaders",
@@ -332,18 +351,14 @@ function sendRequest() {
                 method: method,
                 data: requestData.data,
                 contentType: contentType !== 'none' ? contentType : false,
+                beforeSend: function () {
+                    startTime = performance.now();
+                },
                 success: function (response, status, xhr) {
                     const responseTime = Math.round(performance.now() - startTime);
-                    let responseText;
-                    // 检查响应是否为 JSON
-                    const contentType = xhr.getResponseHeader('Content-Type') || '';
-                    if (contentType.includes('application/json') && typeof response === 'object') {
-                        responseText = JSON.stringify(response, null, 2);
-                    } else {
-                        responseText = typeof response === 'string' ? response : JSON.stringify(response, null, 2);
-                    }
+                    let responseText = JSON.stringify(response, null, 2);
                     if (attemptedHeaders.length > 0) {
-                        responseText = `Note: Some headers may not be applied due to browser or server restrictions.\nAttempted headers: ${attemptedHeaders.join(', ')}\n\n${responseText}`;
+                        // responseText = `Note: Some headers may not be applied due to browser or server restrictions.\nAttempted headers: ${attemptedHeaders.join(', ')}\n\n${responseText}`;
                     }
                     $('#response-body').text(responseText);
                     $('#response-status').text(`${xhr.status} ${xhr.statusText}`).addClass('success');
@@ -356,15 +371,14 @@ function sendRequest() {
 
                     // 在sendRequest的success中
                     if (xhr.status === 200) {
-                        console.log(requestData.data);
                         const curlString = generateCurl(url, headers, requestData.data, contentType);
-                        console.log(curlString);
+                        // console.log(curlString);
 
                         $.ajax({
                             url: 'http://127.0.0.1:4430/curlHistory/save',
                             method: 'POST',
                             contentType: 'application/json',
-                            data: JSON.stringify({ url, curlString }),
+                            data: JSON.stringify({url, curlString}),
                             success: function (data) {
                                 if (!data.success) {
                                     console.error('Failed to save history:', data.message);
@@ -492,14 +506,8 @@ function parseCurl(curlText) {
 
     if ($('input[name="content-type"][value="' + normalizedContentType + '"]').length > 0) {
         $('input[name="content-type"][value="' + normalizedContentType + '"]').prop('checked', true);
-        if (normalizedContentType === 'application/json') {
-            $('#format-json-btn').removeClass('hidden');
-        } else {
-            $('#format-json-btn').addClass('hidden');
-        }
     } else {
         $('input[name="content-type"][value="none"]').prop('checked', true);
-        $('#format-json-btn').addClass('hidden');
         $('#headers-container .header-row').each(function () {
             const keyInput = $(this).find('.header-key');
             if (keyInput.val().toLowerCase() === 'content-type') {
